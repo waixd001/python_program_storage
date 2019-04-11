@@ -3,7 +3,10 @@
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from os import path
-from urllib.parse import urlparse
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
 curdir = path.dirname(path.realpath(__file__))
 sep = '/'
