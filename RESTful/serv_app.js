@@ -9,6 +9,9 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true }));
 
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 let data = fs.readFileSync('users.json');
 users = JSON.parse( data );
 console.log(users);
@@ -44,7 +47,7 @@ app.post('/addUser', function (req, res) {
      var uname = req.body.uname;
      var prof  = req.body.prof;
      var passwd = req.body.passwd;
-     var str = 'UPDATE: Name: '+ uname +', PROF: '+prof+' UUID: '+uuid+' PASS: '+ passwd;
+     var str = 'Added: Name: '+ uname +', PROF: '+prof+' UUID: '+uuid+' PASS: '+ passwd;
      // json data
      var response = {
       "name":uname,
@@ -71,7 +74,7 @@ app.post('/addUser', function (req, res) {
      res.end(str);
 });
 
-app.put('/updateUser', function (req, res) {
+app.post('/updateUser', function (req, res) {
       var uuid  = req.body.uuid;
       var uname = req.body.uname;
       var prof  = req.body.prof;
@@ -105,7 +108,7 @@ app.put('/updateUser', function (req, res) {
      res.end(str);
 })
 
-app.delete('/deleteUser', function (req, res) {
+app.get('/deleteUser', function (req, res) {
    obj_id = req.query.uuid;
    console.log(obj_id)
    users = JSON.parse( data );

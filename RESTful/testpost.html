@@ -107,7 +107,7 @@
 
     <div class="container">
         <h1>Update User (PUT form)</h1>
-        <form action='http://localhost:8081/updateUser' method='post'>
+        <form action='http://localhost:8081/updateUser' method='POST'>
             <label>ID</label>
             <input type='text' name='uuid' value='4321'><br>
 
@@ -127,7 +127,7 @@
     <br>
 
     <div class="container"><h1>Delete User (Delete form)</h1>
-        <form action='http://localhost:8081/deleteUser' method='delete'>
+        <form action='http://localhost:8081/deleteUser' method='GET'>
             <label>ID</label>
             <input type='text' name='uuid' value='4321'>
             <input type='submit' class="button" value='Submit'>
