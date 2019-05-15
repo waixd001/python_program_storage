@@ -4,21 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-def rgb2ycbcr(im):
-    xform = np.array([[.299, .587, .114], [-.1687, -.3313, .5], [.5, -.4187, -.0813]])
-    ycbcr = im.dot(xform.T)
-    ycbcr[:,:,[1,2]] += 128
-    return np.uint8(ycbcr)
-
-def ycbcr2rgb(im):
-    xform = np.array([[1, 0, 1.402], [1, -0.34414, -.71414], [1, 1.772, 0]])
-    rgb = im.astype(np.float)
-    rgb[:,:,[1,2]] -= 128
-    rgb = rgb.dot(xform.T)
-    np.putmask(rgb, rgb > 255, 255)
-    np.putmask(rgb, rgb < 0, 0)
-    return np.uint8(rgb)
-
 def dct2(block):
     return dct(dct(block.T, norm = 'ortho').T, norm = 'ortho')
 
@@ -30,16 +15,17 @@ def quanStep(block,quanTable):
     qdct_block = np.zeros((8,8))
     for i in range(0,8):
         for j in range(0,8):
-            qdct_block[i,j] = np.round(float(dct_block[i,j]/quanTable[i,j]))*quanTable[i,j]
+            qdct_block[i,j] = np.round(float(dct_block[i,j]/(quanTable[i,j])))*quanTable[i,j]
     rect_qdct_block = np.uint8(idct2(qdct_block.T.T))
+    #Dis_Res(rect_qdct_block)
     return rect_qdct_block
+
 
 def Dis_Res(block):
     rows,cols = block.shape
     for i in range(0,rows):
         for j in range(0,cols):
-            print(block[i,j])
-        print()
+                print(block[i,j])
         
 def imageDCT_to_D(image,quanTable):
         rows,cols = image.shape
@@ -49,14 +35,12 @@ def imageDCT_to_D(image,quanTable):
         
         for i in range(0,rows_times):
             for j in range(0,cols_times):
-                block = image[8*i+0:8*i+8,8*j+0:8*j+8]
+                block = image[8*i:8*i+8,8*j:8*j+8]
                 qblock = quanStep(block,quanTable)
-                dct_image[8*i+0:8*i+8,8*j+0:8*j+8] = qblock
-        
+                dct_image[8*i:8*i+8,8*j:8*j+8] = qblock
         return dct_image
     
 def PSNR_calc(image,qimage):
-    print(image.shape)
     rows,cols,dims = image.shape
     dif=0.0
     for i in range(0,rows):
@@ -64,13 +48,16 @@ def PSNR_calc(image,qimage):
             dif = dif + (image[i,j] - qimage[i,j]) * (image[i,j] - qimage[i,j])
     MSE = dif / (rows*cols)
     PSNR = 10*np.log10(255*255/MSE)
-    return PSNR
+    PSNR_mean=np.mean(PSNR)
+    PSNR_mean = float("{0:.2f}".format(PSNR_mean))
+    return PSNR_mean
 
 def QF(QT,qu):
     QT2 = np.zeros((8,8))
     
     if (qu <= 0):
         qu = 1
+        
     if (qu > 100):
         qu = 100
         
@@ -85,9 +72,27 @@ def QF(QT,qu):
             
     return QT2
 
-img = io.imread('image.jpg')
+def img_process(img,qu):
+    print('Quality = ',qu)
+    quanTable2 = np.int64(QF(quanTable,qu))
+    
+    imgYcc = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+    imgTemp= np.uint32(imageDCT_to_D(imgYcc[:,:,0],quanTable2))
+    imgYcc[:,:,0] = imgTemp
+    img2 = cv2.cvtColor(imgYcc, cv2.COLOR_YCrCb2BGR)
+    
+    plt.subplot(1,2,2)
+    plt.title('DCT Quantized Result')
+    plt.imshow(imgTemp,cmap='gray')
+    
+    img_PSNR = PSNR_calc(img,img2)
+    io.imsave('QF'+str(qu)+'_PSNR='+str(img_PSNR)+'dB.jpg',img2)
+    
+    print('PSNR = ',img_PSNR,'dB')
+    
+img = io.imread('image.bmp')
 plt.figure(num=2,figsize=(6,6))
-quality = 5
+quality = np.array([75,50,25,15,5])
 
 quanTable = np.array([
   [16, 11, 10, 16, 24, 40, 51, 61],
@@ -98,22 +103,10 @@ quanTable = np.array([
   [24, 35, 55, 64, 81, 104, 113, 92],
   [49, 64, 78, 87, 103, 121, 120, 101],
   [72, 92, 95, 98, 112, 100, 103, 99]])
-    
-quanTable2 = np.int64(QF(quanTable,quality))
 
 plt.subplot(1,2,1)
 plt.title('Original iamge')
 plt.imshow(img,cmap='gray')
 
-imgYcc = rgb2ycbcr(img)
-imgTemp= np.uint32(imageDCT_to_D(imgYcc[:,:,0],quanTable2))
-imgYcc[:,:,0] = imgTemp
-img2 = ycbcr2rgb(imgYcc)
-
-plt.subplot(1,2,2)
-plt.title('DCT Quantized Result')
-plt.imshow(img2,cmap='gray')
-
-io.imsave('output.jpg',img2)
-
-print('PSNR1',PSNR_calc(img,img2),'dB')
+#for i in range(0,quality.shape[0]):
+img_process(img,quality[4])
